@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import './FileExplorer.css';
+import React, { useState } from "react";
+import "./FileExplorer.css";
 
 const FileExplorer = () => {
   const [items, setItems] = useState([
     {
-      id: 'root',
-      name: 'root',
-      type: 'folder',
-      children: []
-    }
+      id: "root",
+      name: "root",
+      type: "folder",
+      children: [],
+    },
   ]);
   const [showInput, setShowInput] = useState(false);
-  const [newItemName, setNewItemName] = useState('');
+  const [newItemName, setNewItemName] = useState("");
   const [currentParent, setCurrentParent] = useState(null);
   const [newItemType, setNewItemType] = useState(null);
 
@@ -19,7 +19,7 @@ const FileExplorer = () => {
     setCurrentParent(parentId);
     setNewItemType(type);
     setShowInput(true);
-    setNewItemName('');
+    setNewItemName("");
   };
 
   const handleSubmit = (e) => {
@@ -30,51 +30,49 @@ const FileExplorer = () => {
       id: Math.random().toString(36).substr(2, 9),
       name: newItemName.trim(),
       type: newItemType,
-      children: newItemType === 'folder' ? [] : null
+      children: newItemType === "folder" ? [] : null,
     };
 
-    setItems(prevItems => {
-      const updateTree = (items) => {
-        return items.map(item => {
-          if (item.id === currentParent) {
-            return {
-              ...item,
-              children: [...(item.children || []), newItem]
-            };
-          }
-          if (item.children) {
-            return {
-              ...item,
-              children: updateTree(item.children)
-            };
-          }
-          return item;
-        });
-      };
-      return updateTree(prevItems);
-    });
+    const updateTree = (items) => {
+      return items.map((item) => {
+        if (item.id === currentParent) {
+          return {
+            ...item,
+            children: [...(item.children || []), newItem],
+          };
+        }
+        if (item.children) {
+          return {
+            ...item,
+            children: updateTree(item.children),
+          };
+        }
+        return item;
+      });
+    };
+    const updatedList = updateTree(items);
+    setItems(updatedList);
 
     setShowInput(false);
-    setNewItemName('');
+    setNewItemName("");
     setCurrentParent(null);
     setNewItemType(null);
   };
 
   const deleteItem = (itemId) => {
-    setItems(prevItems => {
-      const deleteFromTree = (items) => {
-        return items.filter(item => {
-          if (item.id === itemId) {
-            return false;
-          }
-          if (item.children) {
-            item.children = deleteFromTree(item.children);
-          }
-          return true;
-        });
-      };
-      return deleteFromTree(prevItems);
-    });
+    const deleteFromTree = (items) => {
+      return items.filter((item) => {
+        if (item.id === itemId) {
+          return false;
+        }
+        if (item.children) {
+          item.children = deleteFromTree(item.children);
+        }
+        return true;
+      });
+    };
+    const updatedList = deleteFromTree(items);
+    setItems(updatedList);
   };
 
   const FileItem = ({ item }) => {
@@ -83,39 +81,29 @@ const FileExplorer = () => {
     return (
       <div className="file-item">
         <div className="file-row">
-          {item.type === 'folder' && (
-            <span 
-              className="expander" 
-              onClick={() => setIsExpanded(!isExpanded)}
-            >
-              {isExpanded ? '▼' : '▶'}
+          {item.type === "folder" && (
+            <span className="expander" onClick={() => setIsExpanded(!isExpanded)}>
+              {isExpanded ? "▼" : "▶"}
             </span>
           )}
           <span className="item-name">
-            {item.type === 'folder' ? '📁' : '📄'} {item.name}
+            {item.type === "folder" ? "📁" : "📄"} {item.name}
           </span>
-          {item.id !== 'root' && (
-            <button 
-              className="delete-btn"
-              onClick={() => deleteItem(item.id)}
-            >
+          {item.id !== "root" && (
+            <button className="delete-btn" onClick={() => deleteItem(item.id)}>
               Delete
             </button>
           )}
-          {item.type === 'folder' && (
+          {item.type === "folder" && (
             <div className="action-buttons">
-              <button onClick={() => handleAddClick(item.id, 'folder')}>
-                Add Folder
-              </button>
-              <button onClick={() => handleAddClick(item.id, 'file')}>
-                Add File
-              </button>
+              <button onClick={() => handleAddClick(item.id, "folder")}>Add Folder</button>
+              <button onClick={() => handleAddClick(item.id, "file")}>Add File</button>
             </div>
           )}
         </div>
-        {item.type === 'folder' && isExpanded && item.children && (
+        {item.type === "folder" && isExpanded && item.children && (
           <div className="children">
-            {item.children.map(child => (
+            {item.children.map((child) => (
               <FileItem key={child.id} item={child} />
             ))}
           </div>
@@ -126,10 +114,10 @@ const FileExplorer = () => {
 
   return (
     <div className="file-explorer">
-      {items.map(item => (
+      {items.map((item) => (
         <FileItem key={item.id} item={item} />
       ))}
-      
+
       {showInput && (
         <div className="input-overlay">
           <form onSubmit={handleSubmit} className="input-form">
@@ -142,7 +130,9 @@ const FileExplorer = () => {
             />
             <div className="form-buttons">
               <button type="submit">Create</button>
-              <button type="button" onClick={() => setShowInput(false)}>Cancel</button>
+              <button type="button" onClick={() => setShowInput(false)}>
+                Cancel
+              </button>
             </div>
           </form>
         </div>
@@ -151,4 +141,4 @@ const FileExplorer = () => {
   );
 };
 
-export default FileExplorer; 
+export default FileExplorer;
