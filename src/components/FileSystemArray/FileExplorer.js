@@ -1,130 +1,106 @@
 import React, { useState } from "react";
+import "./fileExplorer.css";
 
-let idCounter = 5;
-
-const initialItems = [
+// ========== INITIAL DATA ==========
+// Flat array structure - each item knows its parent via parentId
+// This is easier to update than nested tree structure
+const initialData = [
   { id: 1, name: "root", type: "folder", parentId: null },
   { id: 2, name: "Documents", type: "folder", parentId: 1 },
-  { id: 3, name: "todo.txt", type: "file", parentId: 2 },
-  { id: 4, name: "Photos", type: "folder", parentId: 1 },
+  { id: 3, name: "readme.txt", type: "file", parentId: 2 },
 ];
 
-function FileExplorer() {
-  const [items, setItems] = useState(initialItems);
-  const [expanded, setExpanded] = useState([1]);
-  const [editing, setEditing] = useState(null);
-  const [newName, setNewName] = useState("");
+let nextId = 4; // Simple ID counter
 
-  const toggle = (id) => {
+function FileExplorer() {
+  const [items, setItems] = useState(initialData);
+  const [expanded, setExpanded] = useState([1]); // Track which folders are open
+
+  // ========== TOGGLE FOLDER ==========
+  const toggleFolder = (id) => {
     setExpanded((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id)
+        ? prev.filter((x) => x !== id) // Close: remove from array
+        : [...prev, id] // Open: add to array
     );
   };
 
-  const add = (parentId, type) => {
-    const name = prompt(`Enter ${type} name`);
-    if (name) {
-      setItems((prev) => [...prev, { id: idCounter++, name, type, parentId }]);
-      setExpanded((prev) => [...new Set([...prev, parentId])]);
+  // ========== ADD ITEM ==========
+  const addItem = (parentId, type) => {
+    const name = prompt(`Enter ${type} name:`);
+    if (!name) return;
+
+    const newItem = { id: nextId++, name, type, parentId };
+    setItems((prev) => [...prev, newItem]);
+
+    // Auto-expand parent folder
+    if (!expanded.includes(parentId)) {
+      setExpanded((prev) => [...prev, parentId]);
     }
   };
 
-  const remove = (id) => {
-    const toDelete = [id];
-    let queue = [id];
-    while (queue.length) {
-      const current = queue.pop();
-      const children = items.filter((i) => i.parentId === current);
+  // ========== DELETE ITEM ==========
+  // Must also delete all children recursively
+  const deleteItem = (id) => {
+    const idsToDelete = [id];
+    const queue = [id];
+
+    // BFS to find all descendants
+    while (queue.length > 0) {
+      const currentId = queue.pop();
+      const children = items.filter((item) => item.parentId === currentId);
       children.forEach((child) => {
-        toDelete.push(child.id);
+        idsToDelete.push(child.id);
         queue.push(child.id);
       });
     }
-    setItems((prev) => prev.filter((i) => !toDelete.includes(i.id)));
+
+    setItems((prev) => prev.filter((item) => !idsToDelete.includes(item.id)));
   };
 
-  const rename = (id) => {
-    const item = items.find((i) => i.id === id);
-    setEditing(id);
-    setNewName(item.name);
-  };
+  // ========== RENDER TREE RECURSIVELY ==========
+  const renderTree = (parentId, depth = 0) => {
+    // Get all children of current parent
+    const children = items.filter((item) => item.parentId === parentId);
 
-  const save = (id) => {
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, name: newName } : i))
-    );
-    setEditing(null);
-    setNewName("");
-  };
+    return children.map((item) => (
+      <div key={item.id} className="item" style={{ paddingLeft: depth * 20 }}>
+        {/* Icon - clickable for folders */}
+        <span
+          className="icon"
+          onClick={() => item.type === "folder" && toggleFolder(item.id)}
+        >
+          {item.type === "folder" ? "📁" : "📄"}
+        </span>
 
-  const renderItems = (parentId, level = 0) => {
-    return items
-      .filter((i) => i.parentId === parentId)
-      .map((item) => (
-        <div key={item.id} style={{ marginLeft: level * 15 }}>
-          {/* collapse */}
-          <span
-            onClick={() => item.type === "folder" && toggle(item.id)}
-            style={{ cursor: "pointer" }}
-          >
-            {item.type === "folder" ? "📁 " : "📄 "}
-          </span>
-          {/* <span
-            onClick={() => item.type === "folder" && toggle(item.id)}
-            style={{ cursor: "pointer" }}
-          >
-            {item.type === "folder"
-              ? expanded.includes(item.id)
-                ? "📂 "
-                : "📁 "
-              : "📄 "}
-          </span> */}
-          {editing === item.id ? (
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onBlur={() => save(item.id)}
-              autoFocus
-            />
-          ) : (
-            <span style={{ marginRight: "4px" }}>
-              {item.type == "folder" ? "F" : "f"} {item.name}
-            </span>
+        {/* Name */}
+        <span className="name">{item.name}</span>
+
+        {/* Action Buttons */}
+        <div className="actions">
+          {item.type === "folder" && (
+            <>
+              <button onClick={() => addItem(item.id, "folder")}>+Folder</button>
+              <button onClick={() => addItem(item.id, "file")}>+File</button>
+            </>
           )}
-
-          <button
-            style={{ marginRight: "4px" }}
-            onClick={() => add(item.id, "folder")}
-          >
-            +Folder
-          </button>
-          <button
-            style={{ marginRight: "4px" }}
-            onClick={() => add(item.id, "file")}
-          >
-            +File
-          </button>
-          <button
-            style={{ marginRight: "4px" }}
-            onClick={() => rename(item.id)}
-          >
-            Edit
-          </button>
-          {item.id !== 1 && (
-            <button onClick={() => remove(item.id)}>Delete</button>
+          {item.parentId !== null && (
+            <button onClick={() => deleteItem(item.id)}>Delete</button>
           )}
-
-          {item.type === "folder" &&
-            expanded.includes(item.id) &&
-            renderItems(item.id, level + 1)}
         </div>
-      ));
+
+        {/* Render children if folder is expanded */}
+        {item.type === "folder" &&
+          expanded.includes(item.id) &&
+          renderTree(item.id, depth + 1)}
+      </div>
+    ));
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
-      <h3>Simple File Explorer</h3>
-      {renderItems(null)}
+    <div className="file-explorer">
+      <h3>File Explorer</h3>
+      {renderTree(null)}
     </div>
   );
 }
